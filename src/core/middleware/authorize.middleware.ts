@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 
+import { prisma } from "@/core/database";
 import { sendResponse } from "@/core/utils";
 import { JwtUtils } from "@/core/utils/jwt";
 import { Role } from "@/prisma/enums";
@@ -18,6 +19,20 @@ export const authorize = (...roles: Role[]) => {
 
     if (!payload) {
       sendResponse.unauthorized(res, "Invalid or expired token.");
+      return;
+    }
+
+    // Verify user actually exists in database
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { id: true, email: true, role: true },
+    });
+
+    if (!user) {
+      sendResponse.unauthorized(
+        res,
+        "User not found. Please log in again.",
+      );
       return;
     }
 
