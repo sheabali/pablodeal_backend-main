@@ -35,3 +35,5 @@ coverage/
 # Runtime
 *.pid
 *.seed
+
+.vercel
