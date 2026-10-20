@@ -1,0 +1,361 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum GameType {
+  CASUAL
+  RANKED
+  SOLO
+}
+
+enum LeagueStatus {
+  PENDING
+  ACTIVE
+  FINISHED
+}
+
+enum MatchdayStatus {
+  PENDING
+  OPEN
+  CLOSED
+}
+
+enum LeagueMatchStatus {
+  PENDING
+  IN_PLAY
+  FINISHED
+  AUTO_WIN
+}
+
+enum GameStatus {
+  PENDING
+  ACTIVE
+  FINISHED
+  CANCELLED
+}
+
+enum GameEventType {
+  MATCH_START
+  DIRECT_GOAL
+  FREE_KICK_START
+  FREE_KICK_GOAL
+  FREE_KICK_MISS
+  PENALTY_START
+  PENALTY_GOAL
+  PENALTY_MISS
+  CORNER_START
+  CORNER_GOAL
+  CORNER_MISS
+  SAVE
+  MISS
+  STOPPAGE_TIME_START
+  MATCH_END
+}
+
+enum TokenType {
+  MAGIC_LINK
+  RESET_PASSWORD
+  NEW_EMAIL
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  password     String
+  name         String?
+  role         Role     @default(USER)
+  verified     Boolean  @default(false)
+  pendingEmail String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  gamesAsPlayer1     Game[]              @relation("Player1")
+  gamesAsPlayer2     Game[]              @relation("Player2")
+  wonGames           Game[]              @relation("Winner")
+  gameEvents         GameEvent[]
+  rankedProfile      RankedProfile?
+  playerStats        PlayerStats?
+  verificationTokens VerificationToken[]
+  sessions           Session[]
+  leaguesAdmin       League[]            @relation("LeagueAdmin")
+  leagueTeams        LeagueTeam[]
+  notifications      Notification[]
+  deviceTokens       DeviceToken[]
+  savedGoals         SavedGoal[]
+}
+
+model VerificationToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  tokenHash String
+  type      TokenType
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  tokenHash    String
+  refreshToken String
+  userAgent    String?
+  ip           String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+}
+
+model Game {
+  id     String     @id @default(cuid())
+  type   GameType
+  status GameStatus @default(PENDING)
+
+  player1Id String
+  player2Id String
+  player1   User   @relation("Player1", fields: [player1Id], references: [id])
+  player2   User   @relation("Player2", fields: [player2Id], references: [id])
+
+  winnerId String?
+  winner   User?   @relation("Winner", fields: [winnerId], references: [id])
+
+  player1Score   Int @default(0)
+  player2Score   Int @default(0)
+  stoppageTimeMs Int @default(0)
+
+  events    GameEvent[]
+  startedAt DateTime?
+  endedAt   DateTime?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model GameEvent {
+  id               String        @id @default(cuid())
+  gameId           String
+  game             Game          @relation(fields: [gameId], references: [id])
+  playerId         String
+  player           User          @relation(fields: [playerId], references: [id])
+  type             GameEventType
+  turnNumber       Int
+  stopwatchValueMs Int?
+  selectedValue    String?
+  matched          Boolean?
+  createdAt        DateTime      @default(now())
+}
+
+model RankedProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  division               Int @default(10)
+  rp                     Int @default(0)
+  highestDivision        Int @default(10)
+  promotionShield        Int @default(0)
+  placementMatchesPlayed Int @default(0)
+  placementTotal         Int @default(10)
+
+  seasonId String?
+  season   Season? @relation(fields: [seasonId], references: [id])
+}
+
+model Season {
+  id        String   @id @default(cuid())
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  active    Boolean  @default(false)
+
+  profiles  RankedProfile[]
+  createdAt DateTime        @default(now())
+}
+
+model PlayerStats {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  gamesPlayed Int @default(0)
+  wins        Int @default(0)
+  losses      Int @default(0)
+  draws       Int @default(0)
+  goals       Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model League {
+  id      String @id @default(cuid())
+  name    String
+  adminId String
+  admin   User   @relation("LeagueAdmin", fields: [adminId], references: [id])
+
+  inviteCode           String       @unique
+  inviteLink           String       @unique
+  status               LeagueStatus @default(PENDING)
+  matchdayStartMinutes Int          @default(600)
+  startDate            DateTime
+
+  teams     LeagueTeam[]
+  matchdays Matchday[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LeagueTeam {
+  id       String  @id @default(cuid())
+  leagueId String
+  league   League  @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User    @relation(fields: [userId], references: [id])
+  name     String
+  crestUrl String?
+
+  entries     MatchdayEntry[] @relation("EntryTeam")
+  matchesHome LeagueMatch[]   @relation("HomeTeam")
+  matchesAway LeagueMatch[]   @relation("AwayTeam")
+  attempts    LeagueAttempt[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([leagueId, userId])
+}
+
+model Matchday {
+  id       String         @id @default(cuid())
+  leagueId String
+  league   League         @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  number   Int
+  opensAt  DateTime
+  closesAt DateTime
+  status   MatchdayStatus @default(PENDING)
+
+  matches LeagueMatch[]
+  entries MatchdayEntry[]
+
+  @@unique([leagueId, number])
+}
+
+model LeagueMatch {
+  id         String            @id @default(cuid())
+  matchdayId String
+  matchday   Matchday          @relation(fields: [matchdayId], references: [id], onDelete: Cascade)
+  homeTeamId String
+  awayTeamId String
+  homeTeam   LeagueTeam        @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam   LeagueTeam        @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  status     LeagueMatchStatus @default(PENDING)
+
+  homeGoals    Int?
+  awayGoals    Int?
+  winnerTeamId String?
+  finishedAt   DateTime?
+
+  attempts LeagueAttempt[]
+
+  @@unique([matchdayId, homeTeamId])
+}
+
+model MatchdayEntry {
+  id         String     @id @default(cuid())
+  matchdayId String
+  matchday   Matchday   @relation(fields: [matchdayId], references: [id], onDelete: Cascade)
+  teamId     String
+  team       LeagueTeam @relation("EntryTeam", fields: [teamId], references: [id], onDelete: Cascade)
+
+  freeAttemptsUsed      Int       @default(0)
+  adAttemptsUsed        Int       @default(0)
+  adGranted             Boolean   @default(false)
+  purchasedAttempts     Int       @default(0)
+  purchasedAttemptsUsed Int       @default(0)
+  attemptsUsed          Int       @default(0)
+  bestGoals             Int       @default(0)
+  lastAttemptAt         DateTime?
+  activeGameId          String?
+
+  @@unique([matchdayId, teamId])
+}
+
+model LeagueAttempt {
+  id            String      @id @default(cuid())
+  matchId       String
+  match         LeagueMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  teamId        String
+  team          LeagueTeam  @relation(fields: [teamId], references: [id])
+  attemptNumber Int
+  goals         Int
+  createdAt     DateTime    @default(now())
+}
+
+model LeagueConfig {
+  id             String @id @default("default")
+  freeAttempts   Int    @default(2)
+  adAttempts     Int    @default(1)
+  packSize       Int    @default(2)
+  packPriceCents Int    @default(100)
+  matchdayHours  Int    @default(24)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  type      String
+  data      Json?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+}
+
+model DeviceToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  platform  String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model SavedGoal {
+  id               String        @id @default(cuid())
+  userId           String
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leagueId         String?
+  matchdayId       String?
+  matchId          String?
+  gameId           String?
+  attemptId        String?
+  scoringTeamId    String?
+  opponentTeamId   String?
+  eventType        GameEventType @default(DIRECT_GOAL)
+  stopwatchValueMs Int?
+  score            Int           @default(1)
+  metadata         Json?
+  createdAt        DateTime      @default(now())
+
+  @@index([userId])
+  @@index([leagueId])
+  @@index([matchId])
+  @@index([createdAt])
+}

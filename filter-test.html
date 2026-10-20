@@ -1,0 +1,817 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Filter API Tester</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: #0a0a0a;
+        color: #e5e5e5;
+        padding: 20px;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin-bottom: 20px;
+        color: #fff;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 350px 1fr;
+        gap: 20px;
+        min-height: 100vh;
+      }
+      .sidebar {
+        position: sticky;
+        top: 20px;
+        align-self: start;
+        max-height: calc(100vh - 40px);
+        overflow-y: auto;
+      }
+      .sidebar::-webkit-scrollbar {
+        width: 6px;
+      }
+      .sidebar::-webkit-scrollbar-thumb {
+        background: #333;
+        border-radius: 3px;
+      }
+      .group {
+        margin-bottom: 16px;
+        border: 1px solid #222;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .group-header {
+        padding: 10px 14px;
+        background: #141414;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        user-select: none;
+      }
+      .group-header:hover {
+        background: #1a1a1a;
+      }
+      .group-title {
+        font-weight: 600;
+        font-size: 0.85rem;
+      }
+      .group-type {
+        font-size: 0.7rem;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .group-body {
+        padding: 10px 14px;
+        display: none;
+      }
+      .group.open .group-body {
+        display: block;
+      }
+      .option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 0;
+        cursor: pointer;
+      }
+      .option:hover {
+        color: #fff;
+      }
+      .option input {
+        accent-color: #3b82f6;
+      }
+      .option-label {
+        font-size: 0.85rem;
+      }
+      .option-value {
+        font-size: 0.7rem;
+        color: #555;
+        margin-left: auto;
+      }
+      .text-input {
+        width: 100%;
+        padding: 6px 10px;
+        background: #1a1a1a;
+        border: 1px solid #333;
+        border-radius: 4px;
+        color: #e5e5e5;
+        font-size: 0.85rem;
+        margin-top: 6px;
+      }
+      .actions {
+        position: sticky;
+        bottom: 0;
+        background: #0a0a0a;
+        padding: 16px 0;
+        border-top: 1px solid #222;
+      }
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .btn-primary {
+        background: #3b82f6;
+        color: #fff;
+        width: 100%;
+      }
+      .btn-primary:hover {
+        background: #2563eb;
+      }
+      .btn-primary:disabled {
+        background: #333;
+        cursor: not-allowed;
+      }
+      .results {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .meta {
+        padding: 12px 16px;
+        background: #141414;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        color: #888;
+        display: flex;
+        gap: 20px;
+      }
+      .meta span {
+        color: #e5e5e5;
+      }
+      .movie {
+        display: flex;
+        gap: 16px;
+        padding: 16px;
+        background: #141414;
+        border-radius: 8px;
+        border: 1px solid #222;
+      }
+      .movie-poster {
+        width: 120px;
+        height: 180px;
+        border-radius: 6px;
+        overflow: hidden;
+        flex-shrink: 0;
+        background: #222;
+      }
+      .movie-poster img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .movie-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .movie-title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      .movie-meta {
+        font-size: 0.75rem;
+        color: #666;
+        margin-bottom: 8px;
+        display: flex;
+        gap: 12px;
+      }
+      .movie-overview {
+        font-size: 0.8rem;
+        color: #999;
+        line-height: 1.5;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .movie-genres {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 8px;
+      }
+      .genre-tag {
+        padding: 2px 8px;
+        background: #1e293b;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        color: #94a3b8;
+      }
+      .match-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 600;
+      }
+      .match-high {
+        background: #064e3b;
+        color: #34d399;
+      }
+      .match-mid {
+        background: #713f12;
+        color: #fbbf24;
+      }
+      .match-low {
+        background: #7f1d1d;
+        color: #f87171;
+      }
+      .providers {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 8px;
+      }
+      .provider {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        background: #1a1a1a;
+        border-radius: 4px;
+        font-size: 0.7rem;
+      }
+      .provider img {
+        width: 16px;
+        height: 16px;
+        border-radius: 2px;
+      }
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+      }
+      .error {
+        padding: 16px;
+        background: #1a0a0a;
+        border: 1px solid #331111;
+        border-radius: 8px;
+        color: #f87171;
+        font-size: 0.85rem;
+      }
+      .skeleton-movie {
+        display: flex;
+        gap: 16px;
+        padding: 16px;
+        border: 1px solid #1a1a1a;
+        border-radius: 8px;
+        margin-bottom: 12px;
+      }
+      .skeleton-poster {
+        width: 100px;
+        height: 150px;
+        border-radius: 6px;
+        flex-shrink: 0;
+      }
+      .skeleton-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding-top: 4px;
+      }
+      .skeleton-line {
+        height: 14px;
+        border-radius: 4px;
+      }
+      .skeleton-w40 { width: 40%; }
+      .skeleton-w60 { width: 60%; }
+      .skeleton-w80 { width: 80%; }
+      .skeleton-w100 { width: 100%; }
+      .skeleton-pulse {
+        background: linear-gradient(90deg, #1a1a1a 25%, #262626 50%, #1a1a1a 75%);
+        background-size: 200% 100%;
+        animation: skeleton-pulse 1.5s ease-in-out infinite;
+      }
+      @keyframes skeleton-pulse {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+      .config {
+        margin-bottom: 16px;
+        padding: 12px 14px;
+        background: #141414;
+        border: 1px solid #222;
+        border-radius: 8px;
+      }
+      .config label {
+        font-size: 0.75rem;
+        color: #666;
+        display: block;
+        margin-bottom: 4px;
+      }
+      .config input {
+        width: 100%;
+        padding: 6px 10px;
+        background: #1a1a1a;
+        border: 1px solid #333;
+        border-radius: 4px;
+        color: #e5e5e5;
+        font-size: 0.85rem;
+      }
+      .pagination {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        padding: 16px 0;
+      }
+      .pagination button {
+        padding: 8px 16px;
+        background: #1a1a1a;
+        border: 1px solid #333;
+        border-radius: 4px;
+        color: #e5e5e5;
+        cursor: pointer;
+        font-size: 0.8rem;
+      }
+      .pagination button:hover {
+        background: #222;
+      }
+      .pagination button:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+      .json-toggle {
+        font-size: 0.75rem;
+        color: #3b82f6;
+        cursor: pointer;
+        margin-top: 4px;
+      }
+      .json-toggle:hover {
+        text-decoration: underline;
+      }
+      .json-view {
+        display: none;
+        margin-top: 8px;
+        padding: 10px;
+        background: #0a0a0a;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 0.75rem;
+        white-space: pre-wrap;
+        max-height: 200px;
+        overflow-y: auto;
+        color: #94a3b8;
+      }
+      .json-view.show {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="grid">
+      <div class="sidebar">
+        <div class="config">
+          <label>API Base URL</label>
+          <input type="text" id="apiUrl" value="http://10.10.13.24:5037/api/v1" />
+        </div>
+        <div class="config">
+          <label>Auth Token</label>
+          <input
+            type="text"
+            id="authToken"
+            value="Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiJjbXJkMHMyMTcwMDAweXNqNWJrZGF1ZDhhIiwiZW1haWwiOiJ0ZXMxdEBnbWFpbC5jb20iLCJyb2xlIjoiVVNFUiIsInNlc3Npb25JZCI6ImNtcmc0NXhtYzAwMDA1b2o1eHo5MnJyNDMiLCJpYXQiOjE3ODM3NTkxODcsImV4cCI6MTc4NDM2Mzk4N30.ElapJeHpYQw6v-hIAo7jNC2LPw6IkEJwhy5ZOFPnyTk"
+            placeholder="Bearer eyJ..."
+          />
+        </div>
+        <div id="filters"></div>
+      </div>
+      <div class="results" id="results">
+        <div class="loading">Select filters to see results</div>
+      </div>
+    </div>
+
+    <script>
+      const FILTER_GROUPS = [
+        {
+          id: "who-is-watching",
+          title: "Who's Watching?",
+          type: "single",
+          options: [
+            { label: "Just Me", value: "just-me" },
+            { label: "Couple", value: "couple" },
+            { label: "Family", value: "family" },
+            { label: "Friends", value: "friends" },
+            { label: "Kids", value: "kids" },
+            { label: "Group", value: "group" },
+          ],
+        },
+        {
+          id: "media-type",
+          title: "Media Type",
+          type: "single",
+          options: [
+            { label: "Movie", value: "movie" },
+            { label: "TV Show", value: "tv" },
+            { label: "Either", value: "either" },
+            { label: "Documentary", value: "documentary" },
+            { label: "Anime", value: "anime" },
+          ],
+        },
+        {
+          id: "mood",
+          title: "Mood",
+          type: "multi",
+          options: [
+            { label: "Exciting", value: "exciting" },
+            { label: "Funny", value: "funny" },
+            { label: "Romantic", value: "romantic" },
+            { label: "Thrilling", value: "thrilling" },
+            { label: "Mind-Bending", value: "mind-bending" },
+            { label: "Relaxing", value: "relaxing" },
+            { label: "Emotional", value: "emotional" },
+            { label: "Feel Good", value: "feel-good" },
+          ],
+        },
+        {
+          id: "runtime",
+          title: "Runtime",
+          type: "single",
+          options: [
+            { label: "Under 90 mins", value: "under-90" },
+            { label: "90-120 mins", value: "90-120" },
+            { label: "2+ Hours", value: "2-plus" },
+            { label: "No Preference", value: "no-preference" },
+          ],
+        },
+        {
+          id: "streaming",
+          title: "Streaming",
+          type: "multi",
+          options: [
+            { label: "Netflix", value: "8" },
+            { label: "Prime Video", value: "119" },
+            { label: "Disney+", value: "337" },
+            { label: "HBO Max", value: "384" },
+            { label: "Hulu", value: "15" },
+            { label: "Apple TV", value: "350" },
+            { label: "Paramount+", value: "531" },
+          ],
+        },
+        {
+          id: "genres",
+          title: "Genres",
+          type: "multi",
+          options: [
+            { label: "Romance", value: "10749" },
+            { label: "Comedy", value: "35" },
+            { label: "Drama", value: "18" },
+            { label: "Sci-Fi", value: "878" },
+            { label: "Fantasy", value: "14" },
+            { label: "Mystery", value: "9648" },
+            { label: "Adventure", value: "12" },
+            { label: "Action", value: "28" },
+            { label: "Thriller", value: "53" },
+            { label: "Horror", value: "27" },
+            { label: "Crime", value: "80" },
+            { label: "Animation", value: "16" },
+          ],
+        },
+        {
+          id: "avoid",
+          title: "Avoid",
+          type: "multi",
+          options: [
+            { label: "No Horror", value: "no-horror" },
+            { label: "No Romance", value: "no-romance" },
+            { label: "No Documentary", value: "no-documentary" },
+            { label: "No Animation", value: "no-animation" },
+            { label: "No Slow Drama", value: "no-slow-drama" },
+            { label: "No Gore", value: "no-gore" },
+            { label: "No Violence", value: "no-violence" },
+            { label: "No Sad Ending", value: "no-sad-ending" },
+            { label: "No Sexual Content", value: "no-sexual" },
+            { label: "No Jump Scares", value: "no-jump-scares" },
+          ],
+        },
+        {
+          id: "ending-type",
+          title: "Ending Type",
+          type: "single",
+          options: [
+            { label: "Happy Ending", value: "happy" },
+            { label: "Emotional Ending", value: "emotional" },
+            { label: "Bittersweet", value: "bittersweet" },
+            { label: "Unexpected Twist", value: "twist" },
+            { label: "No Preference", value: "no-preference" },
+          ],
+        },
+        {
+          id: "pace",
+          title: "Pace",
+          type: "single",
+          options: [
+            { label: "Slow Burn", value: "slow" },
+            { label: "Balanced", value: "balanced" },
+            { label: "Fast-Paced", value: "fast" },
+          ],
+        },
+        {
+          id: "decade",
+          title: "Decade",
+          type: "single",
+          options: [
+            { label: "1960s-1980s", value: "1960-1980" },
+            { label: "1990s", value: "1990s" },
+            { label: "2000s", value: "2000s" },
+            { label: "2010s", value: "2010s" },
+            { label: "Recent", value: "recent" },
+            { label: "No Preference", value: "no-preference" },
+          ],
+        },
+        {
+          id: "language",
+          title: "Language",
+          type: "single",
+          options: [
+            { label: "English", value: "en" },
+            { label: "Korean", value: "ko" },
+            { label: "Japanese", value: "ja" },
+            { label: "Spanish", value: "es" },
+            { label: "French", value: "fr" },
+            { label: "Any", value: "any" },
+          ],
+        },
+        {
+          id: "award-winning",
+          title: "Award Winning",
+          type: "single",
+          options: [
+            { label: "Yes", value: "yes" },
+            { label: "No", value: "no" },
+            { label: "Doesn't Matter", value: "doesnt-matter" },
+          ],
+        },
+        {
+          id: "tonight-mood",
+          title: "Tonight's Mood",
+          type: "single",
+          options: [
+            { label: "Something to Cry To", value: "cry" },
+            { label: "Something Romantic", value: "romantic-night" },
+            { label: "Something Fun", value: "fun" },
+            { label: "Something Relaxing", value: "relaxing-night" },
+            { label: "Something Mind-Blowing", value: "mind-blowing" },
+            { label: "Something Unforgettable", value: "unforgettable" },
+            { label: "Surprise Me", value: "surprise" },
+          ],
+        },
+        {
+          id: "favorite-actors",
+          title: "Favorite Actors",
+          type: "text",
+          options: [{ label: "Actor Name", value: "" }],
+        },
+        {
+          id: "favorite-directors",
+          title: "Favorite Directors",
+          type: "text",
+          options: [{ label: "Director Name", value: "" }],
+        },
+      ];
+
+      const GENRE_MAP = {
+        28: "Action",
+        12: "Adventure",
+        16: "Animation",
+        35: "Comedy",
+        80: "Crime",
+        99: "Documentary",
+        18: "Drama",
+        10751: "Family",
+        14: "Fantasy",
+        36: "History",
+        27: "Horror",
+        10402: "Music",
+        9648: "Mystery",
+        10749: "Romance",
+        878: "Sci-Fi",
+        10770: "TV Movie",
+        53: "Thriller",
+        10752: "War",
+        37: "Western",
+      };
+
+      let currentPage = 1;
+      let lastFilters = {};
+      let debounceTimer = null;
+
+      function buildFilters() {
+        const container = document.getElementById("filters");
+        container.innerHTML = "";
+
+        FILTER_GROUPS.forEach((group) => {
+          const div = document.createElement("div");
+          div.className = "group";
+          div.innerHTML = `
+          <div class="group-header" onclick="this.parentElement.classList.toggle('open')">
+            <span class="group-title">${group.title}</span>
+            <span class="group-type">${group.type}</span>
+          </div>
+          <div class="group-body">
+            ${
+              group.type === "text"
+                ? `<input class="text-input" type="text" id="filter-${group.id}" placeholder="${group.options[0].label}" />`
+                : group.options
+                    .map(
+                      (opt) => `
+                <label class="option">
+                  <input type="${group.type === "multi" ? "checkbox" : "radio"}" name="filter-${group.id}" value="${opt.value}" />
+                  <span class="option-label">${opt.label}</span>
+                  <span class="option-value">${opt.value}</span>
+                </label>
+              `,
+                    )
+                    .join("")
+            }
+          </div>
+        `;
+          container.appendChild(div);
+        });
+
+        document.querySelectorAll('input[name^="filter-"]').forEach((el) => {
+          el.addEventListener("change", debounceFetch);
+        });
+        document.querySelectorAll('input[id^="filter-"]').forEach((el) => {
+          el.addEventListener("input", debounceFetch);
+        });
+      }
+
+      function debounceFetch() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => fetchResults(1), 400);
+      }
+
+      function getSelectedFilters() {
+        const filters = {};
+
+        FILTER_GROUPS.forEach((group) => {
+          if (group.type === "text") {
+            const input = document.getElementById(`filter-${group.id}`);
+            if (input && input.value.trim()) {
+              filters[group.id] = input.value.trim();
+            }
+            return;
+          }
+
+          if (group.type === "single") {
+            const checked = document.querySelector(`input[name="filter-${group.id}"]:checked`);
+            if (checked) filters[group.id] = checked.value;
+          } else {
+            const checked = document.querySelectorAll(`input[name="filter-${group.id}"]:checked`);
+            if (checked.length > 0) {
+              filters[group.id] = Array.from(checked).map((c) => c.value);
+            }
+          }
+        });
+
+        return filters;
+      }
+
+      function showSkeleton(count = 6) {
+        let html = "";
+        for (let i = 0; i < count; i++) {
+          html += `
+          <div class="skeleton-movie">
+            <div class="skeleton-poster skeleton-pulse"></div>
+            <div class="skeleton-info">
+              <div class="skeleton-line skeleton-w60 skeleton-pulse"></div>
+              <div class="skeleton-line skeleton-w40 skeleton-pulse"></div>
+              <div class="skeleton-line skeleton-w100 skeleton-pulse"></div>
+              <div class="skeleton-line skeleton-w100 skeleton-pulse"></div>
+              <div class="skeleton-line skeleton-w80 skeleton-pulse"></div>
+            </div>
+          </div>`;
+        }
+        document.getElementById("results").innerHTML = html;
+      }
+
+      async function fetchResults(page = 1) {
+        const results = document.getElementById("results");
+        const apiUrl = document.getElementById("apiUrl").value.replace(/\/+$/, "");
+        const token = document.getElementById("authToken").value;
+
+        const filters = getSelectedFilters();
+        if (Object.keys(filters).length === 0) {
+          results.innerHTML = '<div class="loading">Select at least one filter</div>';
+          return;
+        }
+
+        lastFilters = filters;
+        currentPage = page;
+        showSkeleton();
+
+        try {
+          const res = await fetch(`${apiUrl}/recommendations/filter?page=${page}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: token } : {}),
+            },
+            body: JSON.stringify({ filters }),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            results.innerHTML = `<div class="error">${data.message || "Request failed"}</div>`;
+            return;
+          }
+
+          renderResults(data);
+        } catch (err) {
+          results.innerHTML = `<div class="error">${err.message}</div>`;
+        }
+      }
+
+      function renderResults(response) {
+        const container = document.getElementById("results");
+        const { data, meta } = response;
+
+        if (!data || data.length === 0) {
+          container.innerHTML = '<div class="loading">No results found</div>';
+          return;
+        }
+
+        let html = `
+        <div class="meta">
+          <div>Page <span>${meta.page}</span></div>
+          <div>Total <span>${meta.total}</span></div>
+          <div>Showing <span>${data.length}</span></div>
+        </div>
+      `;
+
+        data.forEach((movie) => {
+          const matchClass =
+            movie.match_percentage >= 80
+              ? "match-high"
+              : movie.match_percentage >= 50
+                ? "match-mid"
+                : "match-low";
+          const genres = (movie.genres || [])
+            .map((g) => `<span class="genre-tag">${g.label}</span>`)
+            .join("");
+          const providers = renderProviders(movie.watch_providers);
+
+          html += `
+          <div class="movie">
+            <div class="movie-poster">
+              ${movie.poster_path ? `<img src="${movie.poster_path}" alt="${movie.title}" loading="lazy" />` : ""}
+            </div>
+            <div class="movie-info">
+              <div class="movie-title">${movie.title}</div>
+              <div class="movie-meta">
+                <span>${movie.release_date}</span>
+                <span>⭐ ${movie.vote_average?.toFixed(1)}</span>
+                <span class="match-badge ${matchClass}">${movie.match_percentage}% match</span>
+              </div>
+              <div class="movie-overview">${movie.overview}</div>
+              <div class="movie-genres">${genres}</div>
+              ${providers}
+              <div class="json-toggle" onclick="this.nextElementSibling.classList.toggle('show')">Show JSON</div>
+              <pre class="json-view">${JSON.stringify(movie, null, 2)}</pre>
+            </div>
+          </div>
+        `;
+        });
+
+        html += `
+        <div class="pagination">
+          <button onclick="fetchResults(${meta.page - 1})" ${meta.page <= 1 ? "disabled" : ""}>Prev</button>
+          <button onclick="fetchResults(${meta.page + 1})">Next</button>
+        </div>
+      `;
+
+        container.innerHTML = html;
+      }
+
+      function renderProviders(wp) {
+        if (!wp) return "";
+        const items = [];
+        (wp.flatrate || []).forEach((p) => items.push(p.provider_name));
+        (wp.rent || []).forEach((p) => items.push(`${p.provider_name} (rent)`));
+        (wp.buy || []).forEach((p) => items.push(`${p.provider_name} (buy)`));
+        if (items.length === 0) return "";
+        return `<div class="providers">${items.map((n) => `<span class="provider">${n}</span>`).join("")}</div>`;
+      }
+
+      buildFilters();
+    </script>
+  </body>
+</html>

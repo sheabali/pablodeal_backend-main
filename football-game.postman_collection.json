@@ -1,0 +1,357 @@
+{
+  "info": {
+    "name": "Football Game API",
+    "description": "Real-time football game backend — REST + Socket.IO",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Root",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/",
+          "host": ["{{base_url}}"],
+          "path": [""]
+        }
+      }
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Signup",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/signup",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "signup"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"player@example.com\",\n  \"password\": \"securepass123\",\n  \"name\": \"Player1\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"player@example.com\",\n  \"password\": \"securepass123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify Email (POST)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/verify-email",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "verify-email"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"64-char-hex-from-email\",\n  \"email\": \"player@example.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify Email (GET)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/verify-email?token=64-char-hex&email=player@example.com",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "verify-email"],
+              "query": [
+                { "key": "token", "value": "64-char-hex" },
+                { "key": "email", "value": "player@example.com" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ranked",
+      "item": [
+        {
+          "name": "Leaderboard",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/ranked/leaderboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "ranked", "leaderboard"]
+            }
+          }
+        },
+        {
+          "name": "Active Season",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/ranked/season",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "ranked", "season"]
+            }
+          }
+        },
+        {
+          "name": "My Profile",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/ranked/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "ranked", "profile"]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Match History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/ranked/history",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "ranked", "history"]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ]
+          }
+        },
+        {
+          "name": "My Stats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/ranked/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "ranked", "stats"]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Socket.IO",
+      "item": [
+        {
+          "name": "Connect",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{ws_url}}/socket.io/",
+              "host": ["{{ws_url}}"],
+              "path": ["socket.io", ""]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "events": [
+              { "listen": "open", "script": { "exec": [""] } }
+            ]
+          },
+          "description": "Connect using JWT in query param: io('http://localhost:3000', { auth: { token: '{{jwt_token}}' } })"
+        },
+        {
+          "name": "Join Casual Matchmaking",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{ws_url}}/socket.io/",
+              "host": ["{{ws_url}}"],
+              "path": ["socket.io", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"matchmaking:join\",\n  \"data\": {\n    \"type\": \"casual\"\n  }\n}"
+            }
+          },
+          "description": "Listen for: game:match_found, game:match_start"
+        },
+        {
+          "name": "Join Ranked Matchmaking",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{ws_url}}/socket.io/",
+              "host": ["{{ws_url}}"],
+              "path": ["socket.io", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"matchmaking:join\",\n  \"data\": {\n    \"type\": \"ranked\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Leave Matchmaking",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{ws_url}}/socket.io/",
+              "host": ["{{ws_url}}"],
+              "path": ["socket.io", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"matchmaking:leave\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Start Stopwatch",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{ws_url}}/socket.io/",
+              "host": ["{{ws_url}}"],
+              "path": ["socket.io", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"game:start_stopwatch\"\n}"
+            }
+          },
+          "description": "After receiving game:match_found. Listen for: game:stopwatch_start"
+        },
+        {
+          "name": "Stop Stopwatch",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{ws_url}}/socket.io/",
+              "host": ["{{ws_url}}"],
+              "path": ["socket.io", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"game:stop_stopwatch\"\n}"
+            }
+          },
+          "description": "Listen for: game:result"
+        },
+        {
+          "name": "Free Kick Select",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{ws_url}}/socket.io/",
+              "host": ["{{ws_url}}"],
+              "path": ["socket.io", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"game:free_kick_select\",\n  \"data\": {\n    \"digit\": 5\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Penalty Select",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{ws_url}}/socket.io/",
+              "host": ["{{ws_url}}"],
+              "path": ["socket.io", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"game:penalty_select\",\n  \"data\": {\n    \"even\": false\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Corner Select",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{ws_url}}/socket.io/",
+              "host": ["{{ws_url}}"],
+              "path": ["socket.io", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"game:corner_select\",\n  \"data\": {\n    \"digits\": 42\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Sub Stopwatch Stop",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{ws_url}}/socket.io/",
+              "host": ["{{ws_url}}"],
+              "path": ["socket.io", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"game:sub_stopwatch_stop\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "ws_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
